@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vulnerable Web Application</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .warning { background-color: #fff3cd; color: #856404; padding: 15px; border-radius: 4px; margin-bottom: 20px; border: 1px solid #ffeaa7; }
+        .api-section { margin: 20px 0; }
+        .api-endpoint { background-color: #f8f9fa; padding: 10px; margin: 5px 0; border-radius: 4px; border-left: 4px solid #007bff; }
+        .method { font-weight: bold; color: #007bff; margin-right: 10px; }
+        .vulnerable { color: #dc3545; }
+        h1 { color: #333; text-align: center; }
+        h2 { color: #495057; border-bottom: 2px solid #dee2e6; padding-bottom: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔓 Vulnerable Web Application</h1>
+        
+        <div class="warning">
+            <strong>⚠️ WARNING:</strong> This application contains intentional security vulnerabilities for AWS security testing purposes. 
+            <strong>DO NOT</strong> deploy this in production environments!
+        </div>
+
+        <div class="api-section">
+            <h2>User Management APIs</h2>
+            <div class="api-endpoint">
+                <span class="method">POST</span>/api/v1/users/login
+                <span class="vulnerable">[SQL Injection Vulnerable]</span>
+            </div>
+            <div class="api-endpoint">
+                <span class="method">POST</span>/api/v1/users/register
+                <span class="vulnerable">[SQL Injection Vulnerable]</span>
+            </div>
+            <div class="api-endpoint">
+                <span class="method">GET</span>/api/v1/users/profile/{user_id}
+                <span class="vulnerable">[SQL Injection Vulnerable]</span>
+            </div>
+            <div class="api-endpoint">
+                <span class="method">GET</span>/api/v1/users/search?q=query
+                <span class="vulnerable">[SQL Injection Vulnerable]</span>
+            </div>
+        </div>
+
+        <div class="api-section">
+            <h2>File Management APIs</h2>
+            <div class="api-endpoint">
+                <span class="method">POST</span>/api/v1/files/upload
+                <span class="vulnerable">[Generates S3 CloudTrail Events]</span>
+            </div>
+            <div class="api-endpoint">
+                <span class="method">GET</span>/api/v1/files/download?filename=
+                <span class="vulnerable">[Directory Traversal Risk]</span>
+            </div>
+            <div class="api-endpoint">
+                <span class="method">POST</span>/api/v1/files/bulk-upload?count=
+                <span class="vulnerable">[Mass S3 Operations]</span>
+            </div>
+        </div>
+
+        <div class="api-section">
+            <h2>Admin APIs (Privilege Escalation)</h2>
+            <div class="api-endpoint">
+                <span class="method">POST</span>/api/v1/admin/create-role
+                <span class="vulnerable">[Creates IAM Roles - CloudTrail Events]</span>
+            </div>
+            <div class="api-endpoint">
+                <span class="method">POST</span>/api/v1/admin/attach-policy
+                <span class="vulnerable">[Attaches IAM Policies - CloudTrail Events]</span>
+            </div>
+            <div class="api-endpoint">
+                <span class="method">POST</span>/api/v1/admin/create-instance
+                <span class="vulnerable">[Creates EC2 Instances - CloudTrail Events]</span>
+            </div>
+        </div>
+
+        <div class="api-section">
+            <h2>RDS Attack APIs (Database Security Testing)</h2>
+            <div class="api-endpoint">
+                <span class="method">POST</span>/api/v1/rds/brute-force-attack
+                <span class="vulnerable">[RDS Brute Force - CloudWatch Alarms]</span>
+            </div>
+            <div class="api-endpoint">
+                <span class="method">POST</span>/api/v1/rds/sql-injection-mass-query
+                <span class="vulnerable">[Mass SQL Injection - RDS Logs]</span>
+            </div>
+            <div class="api-endpoint">
+                <span class="method">POST</span>/api/v1/rds/connection-exhaustion
+                <span class="vulnerable">[Connection Pool Exhaustion - CloudWatch]</span>
+            </div>
+            <div class="api-endpoint">
+                <span class="method">GET</span>/api/v1/rds/rds-performance-impact
+                <span class="vulnerable">[Resource-Intensive Queries - Performance Insights]</span>
+            </div>
+            <div class="api-endpoint">
+                <span class="method">POST</span>/api/v1/rds/create-rds-instance
+                <span class="vulnerable">[Create Vulnerable RDS - CloudTrail Events]</span>
+            </div>
+        </div>
+
+        <div class="api-section">
+            <h2>Exploit APIs (For Testing)</h2>
+            <div class="api-endpoint">
+                <span class="method">GET</span>/api/v1/exploit/ssrf?url=
+                <span class="vulnerable">[Server-Side Request Forgery]</span>
+            </div>
+            <div class="api-endpoint">
+                <span class="method">GET</span>/api/v1/exploit/command-injection?cmd=
+                <span class="vulnerable">[Command Injection]</span>
+            </div>
+            <div class="api-endpoint">
+                <span class="method">POST</span>/api/v1/exploit/port-scan
+                <span class="vulnerable">[Network Scanning - VPC Flow Logs]</span>
+            </div>
+            <div class="api-endpoint">
+                <span class="method">POST</span>/api/v1/exploit/crypto-mining-sim
+                <span class="vulnerable">[CPU Usage Spike - CloudWatch Metrics]</span>
+            </div>
+            <div class="api-endpoint">
+                <span class="method">GET</span>/api/v1/exploit/metadata-access
+                <span class="vulnerable">[AWS Metadata Service Access]</span>
+            </div>
+        </div>
+
+        <div class="api-section">
+            <h2>Documentation</h2>
+            <p>API Documentation: <a href="/docs" target="_blank">/docs</a></p>
+            <p>Interactive API: <a href="/redoc" target="_blank">/redoc</a></p>
+            <p>Health Check: <a href="/health" target="_blank">/health</a></p>
+        </div>
+    </div>
+</body>
+</html>

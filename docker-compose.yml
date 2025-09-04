@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-us-east-1}
+      - RDS_ENDPOINT=${RDS_ENDPOINT}
+      - RDS_PORT=${RDS_PORT:-3306}
+      - RDS_USERNAME=${RDS_USERNAME:-admin}
+      - RDS_PASSWORD=${RDS_PASSWORD}
+      - RDS_DB_NAME=${RDS_DB_NAME:-vulnerable_db}
+      - USE_RDS=true
+      - JWT_SECRET=weak_secret_key_123
+      - S3_BUCKET_NAME=${S3_BUCKET_NAME:-vulnerable-test-bucket}
+      - DEBUG=True
+      - LOG_LEVEL=DEBUG
+    volumes:
+      - ./app:/app/app:ro
+    restart: unless-stopped
+    networks:
+      - vulnerable-network
+
+networks:
+  vulnerable-network:
+    driver: bridge

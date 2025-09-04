@@ -1,0 +1,269 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Vulnerable RDS infrastructure for security testing - DO NOT USE IN PRODUCTION'
+
+Parameters:
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC for RDS deployment
+    
+  SubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: Private subnets for RDS (minimum 2 for Multi-AZ)
+    
+  AllowedCIDR:
+    Type: String
+    Default: '0.0.0.0/0'
+    Description: CIDR block allowed to access RDS (VULNERABLE - allows all IPs)
+    
+  DBInstanceClass:
+    Type: String
+    Default: db.t3.micro
+    Description: RDS instance class
+    AllowedValues:
+      - db.t3.micro
+      - db.t3.small
+      - db.t3.medium
+      
+  DBUsername:
+    Type: String
+    Default: admin
+    Description: Database master username
+    
+  DBPassword:
+    Type: String
+    Default: VulnerablePassword123
+    Description: Database master password (WEAK PASSWORD FOR TESTING)
+    NoEcho: false  # VULNERABLE - password visible in template
+
+Resources:
+  # VULNERABLE: Security Group allows all traffic
+  VulnerableRDSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: 'VULNERABLE Security Group for RDS - Allows all access'
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3306
+          ToPort: 3306
+          CidrIp: !Ref AllowedCIDR  # VULNERABLE - allows all IPs
+          Description: 'MySQL access from anywhere (VULNERABLE)'
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          CidrIp: !Ref AllowedCIDR  # VULNERABLE - PostgreSQL if needed
+          Description: 'PostgreSQL access from anywhere (VULNERABLE)'
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+          Description: 'Allow all outbound traffic'
+      Tags:
+        - Key: Name
+          Value: vulnerable-rds-sg
+        - Key: Purpose
+          Value: security-testing
+        - Key: Warning
+          Value: VULNERABLE-DO-NOT-USE-IN-PRODUCTION
+
+  # DB Subnet Group
+  VulnerableDBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: 'Subnet group for vulnerable RDS'
+      SubnetIds: !Ref SubnetIds
+      Tags:
+        - Key: Name
+          Value: vulnerable-db-subnet-group
+        - Key: Purpose
+          Value: security-testing
+
+  # VULNERABLE RDS Instance with multiple security issues
+  VulnerableRDSInstance:
+    Type: AWS::RDS::DBInstance
+    DeletionPolicy: Delete  # VULNERABLE - allows easy deletion
+    Properties:
+      DBInstanceIdentifier: vulnerable-test-database
+      DBInstanceClass: !Ref DBInstanceClass
+      Engine: mysql
+      EngineVersion: '8.0.35'
+      MasterUsername: !Ref DBUsername
+      MasterUserPassword: !Ref DBPassword  # VULNERABLE - weak password
+      AllocatedStorage: 20
+      MaxAllocatedStorage: 100
+      
+      # VULNERABLE SETTINGS
+      PubliclyAccessible: true  # VULNERABLE - public access
+      StorageEncrypted: false   # VULNERABLE - no encryption
+      BackupRetentionPeriod: 0  # VULNERABLE - no backups
+      DeleteAutomatedBackups: true
+      DeletionProtection: false # VULNERABLE - easy to delete
+      MultiAZ: false           # VULNERABLE - single point of failure
+      
+      # Network Configuration
+      VPCSecurityGroups:
+        - !Ref VulnerableRDSSecurityGroup
+      DBSubnetGroupName: !Ref VulnerableDBSubnetGroup
+      
+      # Monitoring (enabled for security testing)
+      MonitoringInterval: 60
+      MonitoringRoleArn: !GetAtt RDSEnhancedMonitoringRole.Arn
+      EnablePerformanceInsights: true
+      PerformanceInsightsRetentionPeriod: 7
+      
+      # Logging (enabled to capture security events)
+      EnableCloudwatchLogsExports:
+        - error
+        - general
+        - slow-query
+        
+      Tags:
+        - Key: Name
+          Value: vulnerable-rds-instance
+        - Key: Purpose
+          Value: security-testing
+        - Key: Warning
+          Value: VULNERABLE-DO-NOT-USE-IN-PRODUCTION
+        - Key: CreatedBy
+          Value: vulnerable-webapp-template
+
+  # IAM Role for Enhanced Monitoring
+  RDSEnhancedMonitoringRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: monitoring.rds.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonRDSEnhancedMonitoringRole
+      Tags:
+        - Key: Purpose
+          Value: rds-monitoring
+
+  # CloudWatch Log Groups for RDS logs
+  RDSErrorLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/rds/instance/vulnerable-test-database/error
+      RetentionInDays: 7
+
+  RDSGeneralLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/rds/instance/vulnerable-test-database/general
+      RetentionInDays: 7
+
+  RDSSlowQueryLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/rds/instance/vulnerable-test-database/slowquery
+      RetentionInDays: 7
+
+  # CloudWatch Alarms for RDS Security Monitoring
+  DatabaseConnectionsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: vulnerable-rds-high-connections
+      AlarmDescription: 'High number of database connections (possible attack)'
+      MetricName: DatabaseConnections
+      Namespace: AWS/RDS
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 10
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: DBInstanceIdentifier
+          Value: !Ref VulnerableRDSInstance
+      TreatMissingData: notBreaching
+
+  CPUUtilizationAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: vulnerable-rds-high-cpu
+      AlarmDescription: 'High CPU utilization (possible performance attack)'
+      MetricName: CPUUtilization
+      Namespace: AWS/RDS
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 80
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: DBInstanceIdentifier
+          Value: !Ref VulnerableRDSInstance
+      TreatMissingData: notBreaching
+
+  # Parameter Group with vulnerable settings
+  VulnerableDBParameterGroup:
+    Type: AWS::RDS::DBParameterGroup
+    Properties:
+      Family: mysql8.0
+      Description: 'Vulnerable parameter group for security testing'
+      Parameters:
+        # VULNERABLE - Enable general query log (performance impact)
+        general_log: 1
+        # VULNERABLE - Enable slow query log with very low threshold
+        slow_query_log: 1
+        long_query_time: 0.1
+        # VULNERABLE - Large max connections (resource exhaustion risk)
+        max_connections: 1000
+        # VULNERABLE - Large packet size (potential for DoS)
+        max_allowed_packet: 67108864
+      Tags:
+        - Key: Purpose
+          Value: security-testing
+        - Key: Warning
+          Value: VULNERABLE-SETTINGS
+
+  # DB Option Group (if needed for additional vulnerable configurations)
+  VulnerableDBOptionGroup:
+    Type: AWS::RDS::OptionGroup
+    Properties:
+      EngineName: mysql
+      MajorEngineVersion: '8.0'
+      OptionGroupDescription: 'Vulnerable option group for security testing'
+      Tags:
+        - Key: Purpose
+          Value: security-testing
+
+Outputs:
+  RDSEndpoint:
+    Description: 'RDS instance endpoint'
+    Value: !GetAtt VulnerableRDSInstance.Endpoint.Address
+    Export:
+      Name: !Sub '${AWS::StackName}-RDSEndpoint'
+      
+  RDSPort:
+    Description: 'RDS instance port'
+    Value: !GetAtt VulnerableRDSInstance.Endpoint.Port
+    Export:
+      Name: !Sub '${AWS::StackName}-RDSPort'
+      
+  DatabaseName:
+    Description: 'Database name'
+    Value: vulnerable_db
+    
+  SecurityGroupId:
+    Description: 'Security Group ID for RDS'
+    Value: !Ref VulnerableRDSSecurityGroup
+    Export:
+      Name: !Sub '${AWS::StackName}-SecurityGroup'
+      
+  VulnerabilityWarnings:
+    Description: 'Security vulnerabilities in this RDS setup'
+    Value: |
+      WARNING: This RDS instance has the following INTENTIONAL vulnerabilities:
+      1. Publicly accessible from internet
+      2. Weak password visible in template
+      3. No encryption at rest
+      4. No automated backups
+      5. No deletion protection
+      6. Overly permissive security group
+      7. Single AZ (no high availability)
+      8. General query logging enabled (performance impact)
+      
+      USE ONLY FOR SECURITY TESTING IN ISOLATED ENVIRONMENTS!
