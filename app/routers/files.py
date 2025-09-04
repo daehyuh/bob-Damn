@@ -20,7 +20,7 @@ async def upload_file(file: UploadFile = File(...)):
         file_id = str(uuid.uuid4())
         s3_key = f"uploads/{file_id}_{file.filename}"
         
-        logger.info(f"Uploading file {file.filename} to S3 bucket {settings.S3_BUCKET_NAME}")
+        logger.info(f"S3 버킷 {settings.S3_BUCKET_NAME}에 파일 {file.filename} 업로드 중")
         
         s3_client.upload_fileobj(
             file.file, 
@@ -35,29 +35,29 @@ async def upload_file(file: UploadFile = File(...)):
             logEvents=[
                 {
                     'timestamp': int(time.time() * 1000),  # Unix timestamp in milliseconds
-                    'message': f"File uploaded: {file.filename} to {s3_key}"
+                    'message': f"파일 업로드: {file.filename} -> {s3_key}"
                 }
             ]
         )
         
         return {
-            "message": "File uploaded successfully",
-            "file_id": file_id,
-            "filename": file.filename,
-            "s3_key": s3_key
+            "메시지": "파일이 성공적으로 업로드되었습니다",
+            "파일_ID": file_id,
+            "파일명": file.filename,
+            "S3_키": s3_key
         }
         
     except Exception as e:
-        logger.error(f"File upload failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
+        logger.error(f"파일 업로드 실패: {e}")
+        raise HTTPException(status_code=500, detail=f"업로드 실패: {str(e)}")
 
 @router.get("/download")
 async def download_file(filename: str):
     try:
-        logger.warning(f"Attempting to download file: {filename}")
+        logger.warning(f"파일 다운로드 시도: {filename}")
         
         if "../" in filename or filename.startswith("/"):
-            logger.warning(f"Potential directory traversal attempt: {filename}")
+            logger.warning(f"디렉토리 탐색 공격 시도 감지: {filename}")
         
         file_path = f"uploads/{filename}"
         
@@ -74,13 +74,13 @@ async def download_file(filename: str):
         )
         
     except Exception as e:
-        logger.error(f"File download failed: {e}")
-        raise HTTPException(status_code=404, detail="File not found")
+        logger.error(f"파일 다운로드 실패: {e}")
+        raise HTTPException(status_code=404, detail="파일을 찾을 수 없습니다")
 
 @router.post("/bulk-upload")
 async def bulk_upload(count: int = Query(default=10, le=1000)):
     try:
-        logger.warning(f"Starting bulk upload of {count} files")
+        logger.warning(f"{count}개 파일 대량 업로드 시작")
         
         uploaded_files = []
         
@@ -96,21 +96,21 @@ async def bulk_upload(count: int = Query(default=10, le=1000)):
             
             uploaded_files.append(file_key)
         
-        logger.info(f"Bulk upload completed: {count} files uploaded")
+        logger.info(f"대량 업로드 완료: {count}개 파일 업로드됨")
         
         return {
-            "message": f"Successfully uploaded {count} files",
-            "files": uploaded_files
+            "메시지": f"{count}개 파일이 성공적으로 업로드되었습니다",
+            "파일목록": uploaded_files
         }
         
     except Exception as e:
-        logger.error(f"Bulk upload failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Bulk upload failed: {str(e)}")
+        logger.error(f"대량 업로드 실패: {e}")
+        raise HTTPException(status_code=500, detail=f"대량 업로드 실패: {str(e)}")
 
 @router.delete("/cleanup")
 async def cleanup_files():
     try:
-        logger.info("Starting file cleanup process")
+        logger.info("파일 정리 프로세스 시작")
         
         response = s3_client.list_objects_v2(
             Bucket=settings.S3_BUCKET_NAME,
@@ -125,13 +125,13 @@ async def cleanup_files():
                 Delete={'Objects': delete_objects}
             )
             
-            return {"message": f"Deleted {len(delete_objects)} files"}
+            return {"메시지": f"{len(delete_objects)}개 파일이 삭제되었습니다"}
         
-        return {"message": "No files to delete"}
+        return {"메시지": "삭제할 파일이 없습니다"}
         
     except Exception as e:
-        logger.error(f"Cleanup failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Cleanup failed: {str(e)}")
+        logger.error(f"정리 실패: {e}")
+        raise HTTPException(status_code=500, detail=f"정리 실패: {str(e)}")
 
 @router.get("/list")
 async def list_files(prefix: Optional[str] = None):
@@ -146,13 +146,13 @@ async def list_files(prefix: Optional[str] = None):
         if 'Contents' in response:
             for obj in response['Contents']:
                 files.append({
-                    'key': obj['Key'],
-                    'size': obj['Size'],
-                    'modified': obj['LastModified'].isoformat()
+                    '파일명': obj['Key'],
+                    '크기': obj['Size'],
+                    '수정일시': obj['LastModified'].isoformat()
                 })
         
-        return {"files": files}
+        return {"파일목록": files}
         
     except Exception as e:
-        logger.error(f"File listing failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Listing failed: {str(e)}")
+        logger.error(f"파일 목록 조회 실패: {e}")
+        raise HTTPException(status_code=500, detail=f"목록 조회 실패: {str(e)}")

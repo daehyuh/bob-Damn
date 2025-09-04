@@ -16,25 +16,25 @@ cloudtrail_client = boto3.client('cloudtrail')
 
 def verify_admin_token(authorization: Optional[str] = Header(None)):
     if not authorization:
-        raise HTTPException(status_code=401, detail="No authorization header")
+        raise HTTPException(status_code=401, detail="인증 헤더가 없습니다")
     
     try:
         token = authorization.replace("Bearer ", "")
         payload = jwt.decode(token, settings.JWT_SECRET, algorithms=["HS256"])
         
-        logger.warning(f"Admin access attempt by user: {payload.get('username')}")
+        logger.warning(f"사용자의 관리자 접근 시도: {payload.get('username')}")
         
         if payload.get('username') != 'admin':
-            logger.warning(f"Non-admin user attempting admin access: {payload.get('username')}")
+            logger.warning(f"비관리자 사용자의 관리자 접근 시도: {payload.get('username')}")
         
         return payload
     except jwt.InvalidTokenException:
-        logger.warning("Invalid JWT token used for admin access")
-        raise HTTPException(status_code=401, detail="Invalid token")
+        logger.warning("관리자 접근에 잘못된 JWT 토큰 사용")
+        raise HTTPException(status_code=401, detail="잘못된 토큰입니다")
 
 @router.get("/users")
 async def list_all_users(user=None):
-    logger.warning("Admin endpoint accessed without proper authentication check")
+    logger.warning("적절한 인증 확인 없이 관리자 엔드포인트에 접근")
     
     try:
         connection = None  # This would normally connect to DB
@@ -45,15 +45,15 @@ async def list_all_users(user=None):
             {"id": 3, "username": "test", "email": "test@example.com"}
         ]
         
-        return {"users": sample_users}
+        return {"사용자목록": sample_users}
     
     except Exception as e:
-        logger.error(f"Error listing users: {e}")
+        logger.error(f"사용자 목록 조회 오류: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/create-role")
 async def create_iam_role(role_name: str, user=None):
-    logger.critical(f"Attempting to create IAM role: {role_name}")
+    logger.critical(f"IAM 역할 생성 시도: {role_name}")
     
     try:
         assume_role_policy = {

@@ -12,8 +12,8 @@ logging.basicConfig(level=getattr(logging, settings.LOG_LEVEL.upper()))
 logger = logging.getLogger(__name__)
 
 app = FastAPI(
-    title="Vulnerable Web Application",
-    description="A deliberately vulnerable web application for AWS security testing",
+    title="취약한 웹 애플리케이션",
+    description="AWS 보안 테스트를 위한 의도적으로 취약한 웹 애플리케이션",
     version="1.0.0",
     debug=settings.DEBUG
 )
@@ -34,11 +34,11 @@ boto3.setup_default_session(
     region_name=settings.AWS_DEFAULT_REGION
 )
 
-app.include_router(users.router, prefix="/api/v1/users", tags=["users"])
-app.include_router(admin.router, prefix="/api/v1/admin", tags=["admin"])
-app.include_router(files.router, prefix="/api/v1/files", tags=["files"])
-app.include_router(exploit.router, prefix="/api/v1/exploit", tags=["exploit"])
-app.include_router(rds_attacks.router, prefix="/api/v1/rds", tags=["rds-attacks"])
+app.include_router(users.router, prefix="/api/v1/users", tags=["사용자"])
+app.include_router(admin.router, prefix="/api/v1/admin", tags=["관리자"])
+app.include_router(files.router, prefix="/api/v1/files", tags=["파일"])
+app.include_router(exploit.router, prefix="/api/v1/exploit", tags=["익스플로잇"])
+app.include_router(rds_attacks.router, prefix="/api/v1/rds", tags=["RDS 공격"])
 
 @app.get("/")
 async def root(request: Request):
@@ -46,5 +46,5 @@ async def root(request: Request):
 
 @app.get("/health")
 async def health_check():
-    logger.info("Health check endpoint accessed")
-    return {"status": "ok", "vulnerable": True}
+    logger.info("상태 확인 엔드포인트에 접근했습니다")
+    return {"상태": "정상", "취약점_존재": True}
