@@ -3,6 +3,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 import logging
 import boto3
+import os
+from pathlib import Path
 from app.routers import users, admin, files, exploit, rds_attacks
 from app.core.config import settings
 
@@ -15,6 +17,13 @@ app = FastAPI(
     version="1.0.0",
     debug=settings.DEBUG
 )
+
+# Create static and templates directories if they don't exist
+static_dir = Path("app/static")
+templates_dir = Path("app/templates")
+
+static_dir.mkdir(parents=True, exist_ok=True)
+templates_dir.mkdir(parents=True, exist_ok=True)
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 templates = Jinja2Templates(directory="app/templates")
