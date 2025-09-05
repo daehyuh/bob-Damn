@@ -29,16 +29,42 @@ async def upload_file(file: UploadFile = File(...)):
             ExtraArgs={'ContentType': file.content_type or 'application/octet-stream'}
         )
         
-        cloudwatch.put_log_events(
-            logGroupName='/aws/application/vulnerable-webapp',
-            logStreamName='file-operations',
-            logEvents=[
-                {
-                    'timestamp': int(time.time() * 1000),  # Unix timestamp in milliseconds
-                    'message': f"파일 업로드: {file.filename} -> {s3_key}"
-                }
-            ]
-        )
+        # CloudWatch 로그 그룹 생성 및 로그 기록 (선택적)
+        try:
+            cloudwatch.put_log_events(
+                logGroupName='/aws/application/vulnerable-webapp',
+                logStreamName='file-operations',
+                logEvents=[
+                    {
+                        'timestamp': int(time.time() * 1000),  # Unix timestamp in milliseconds
+                        'message': f"파일 업로드: {file.filename} -> {s3_key}"
+                    }
+                ]
+            )
+        except cloudwatch.exceptions.ResourceNotFoundException:
+            # 로그 그룹이 없으면 생성
+            try:
+                cloudwatch.create_log_group(logGroupName='/aws/application/vulnerable-webapp')
+                cloudwatch.create_log_stream(
+                    logGroupName='/aws/application/vulnerable-webapp',
+                    logStreamName='file-operations'
+                )
+                # 다시 로그 기록 시도
+                cloudwatch.put_log_events(
+                    logGroupName='/aws/application/vulnerable-webapp',
+                    logStreamName='file-operations',
+                    logEvents=[
+                        {
+                            'timestamp': int(time.time() * 1000),
+                            'message': f"파일 업로드: {file.filename} -> {s3_key}"
+                        }
+                    ]
+                )
+                logger.info("CloudWatch 로그 그룹 및 스트림이 생성되었습니다")
+            except Exception as log_error:
+                logger.warning(f"CloudWatch 로깅 실패 (업로드는 성공): {log_error}")
+        except Exception as log_error:
+            logger.warning(f"CloudWatch 로깅 실패 (업로드는 성공): {log_error}")
         
         return {
             "메시지": "파일이 성공적으로 업로드되었습니다",
