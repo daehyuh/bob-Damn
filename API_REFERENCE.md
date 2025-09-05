@@ -217,6 +217,92 @@ EC2 인스턴스를 생성합니다 (CloudTrail 이벤트 생성).
 }
 ```
 
+### POST /api/v1/admin/ec2-brute-force
+**GuardDuty**: EC2 서비스에 대한 무차별 대입 공격
+
+다양한 AWS 리전에 대해 무단 API 호출을 시도합니다.
+
+**요청**:
+```bash
+curl -X POST "http://localhost:8000/api/v1/admin/ec2-brute-force?target_regions=ap-northeast-2,us-east-1&attempts=20"
+```
+
+**응답**:
+```json
+{
+  "메시지": "EC2 무차별 대입 공격 시뮬레이션 완료",
+  "대상_리전": ["ap-northeast-2", "us-east-1"],
+  "총_시도수": 15,
+  "결과": [
+    {
+      "리전": "ap-northeast-2",
+      "작업": "describe_instances", 
+      "상태": "실패",
+      "오류": "The security token included in the request is invalid",
+      "시도": 1
+    }
+  ],
+  "경고": "GuardDuty에서 이 활동을 UnauthorizedAPICall:EC2/* 이벤트로 탐지할 수 있습니다"
+}
+```
+
+### POST /api/v1/admin/s3-brute-force  
+**GuardDuty**: S3 버킷에 대한 무차별 접근 시도
+
+일반적인 버킷 명명 패턴으로 S3 버킷 존재를 확인하고 접근을 시도합니다.
+
+**요청**:
+```bash
+curl -X POST "http://localhost:8000/api/v1/admin/s3-brute-force?target_buckets=admin-backup,company-data&attempts=30"
+```
+
+**응답**:
+```json
+{
+  "메시지": "S3 무차별 대입 공격 시뮬레이션 완료",
+  "대상_버킷": ["admin-backup", "company-data", "backup", "logs"],
+  "총_시도수": 25,
+  "결과": [
+    {
+      "버킷": "admin-backup",
+      "상태": "접근_실패",
+      "오류": "NoSuchBucket: The specified bucket does not exist",
+      "시도": 1
+    }
+  ],
+  "경고": "GuardDuty에서 이 활동을 S3 관련 보안 이벤트로 탐지할 수 있습니다"
+}
+```
+
+### POST /api/v1/admin/rds-network-brute-force
+**GuardDuty**: RDS 엔드포인트에 대한 네트워크 기반 무차별 대입
+
+실제 RDS 엔드포인트에 TCP 연결 및 데이터베이스 로그인을 시도합니다.
+
+**요청**:
+```bash
+curl -X POST "http://localhost:8000/api/v1/admin/rds-network-brute-force?attempts=25&ports=3306,5432"
+```
+
+**응답**:
+```json
+{
+  "메시지": "RDS 네트워크 무차별 대입 공격 시뮬레이션 완료",
+  "대상_엔드포인트": ["database-1.cluster-xyz.ap-northeast-2.rds.amazonaws.com"],
+  "대상_포트": [3306, 5432],
+  "총_시도수": 20,
+  "결과": [
+    {
+      "엔드포인트": "database-1.cluster-xyz.ap-northeast-2.rds.amazonaws.com:3306",
+      "상태": "연결_실패",
+      "오류": "Name or service not known",
+      "시도": 1
+    }
+  ],
+  "경고": "GuardDuty에서 이 활동을 RDS 관련 네트워크 공격으로 탐지할 수 있습니다"
+}
+```
+
 ---
 
 ## 📁 파일 관리 API
@@ -625,6 +711,18 @@ curl "http://localhost:8000/api/v1/exploit/metadata-access"
 
 # 포트 스캔
 curl -X POST "http://localhost:8000/api/v1/exploit/port-scan?target=scanme.nmap.org&ports=22,80,443"
+```
+
+### 4. AWS 서비스 무차별 대입 테스트
+```bash
+# EC2 서비스 무차별 대입
+curl -X POST "http://localhost:8000/api/v1/admin/ec2-brute-force?attempts=15"
+
+# S3 버킷 무차별 접근  
+curl -X POST "http://localhost:8000/api/v1/admin/s3-brute-force?attempts=20"
+
+# RDS 네트워크 무차별 대입
+curl -X POST "http://localhost:8000/api/v1/admin/rds-network-brute-force?attempts=10"
 ```
 
 ---

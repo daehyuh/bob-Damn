@@ -79,6 +79,18 @@
                 <span class="method">POST</span>/api/v1/admin/create-instance
                 <span class="vulnerable">[EC2 인스턴스 생성 - CloudTrail 이벤트]</span>
             </div>
+            <div class="api-endpoint">
+                <span class="method">POST</span>/api/v1/admin/ec2-brute-force
+                <span class="vulnerable">[EC2 서비스 무차별 대입 - GuardDuty 탐지]</span>
+            </div>
+            <div class="api-endpoint">
+                <span class="method">POST</span>/api/v1/admin/s3-brute-force  
+                <span class="vulnerable">[S3 버킷 무차별 접근 - GuardDuty 탐지]</span>
+            </div>
+            <div class="api-endpoint">
+                <span class="method">POST</span>/api/v1/admin/rds-network-brute-force
+                <span class="vulnerable">[RDS 네트워크 무차별 대입 - GuardDuty 탐지]</span>
+            </div>
         </div>
 
         <div class="api-section">
