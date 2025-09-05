@@ -64,12 +64,16 @@
         <div class="api-section">
             <h2>관리자 API (권한 상승)</h2>
             <div class="api-endpoint">
-                <span class="method">POST</span>/api/v1/admin/create-role
-                <span class="vulnerable">[IAM 역할 생성 - CloudTrail 이벤트]</span>
+                <span class="method">GET</span>/api/v1/admin/users?user_id=
+                <span class="vulnerable">[IDOR - 다른 사용자 정보 접근]</span>
             </div>
             <div class="api-endpoint">
-                <span class="method">POST</span>/api/v1/admin/attach-policy
-                <span class="vulnerable">[IAM 정책 연결 - CloudTrail 이벤트]</span>
+                <span class="method">POST</span>/api/v1/admin/sudo-command
+                <span class="vulnerable">[약한 패스워드로 sudo 권한 획득]</span>
+            </div>
+            <div class="api-endpoint">
+                <span class="method">POST</span>/api/v1/admin/change-user-role
+                <span class="vulnerable">[약한 키로 사용자 역할 변경]</span>
             </div>
             <div class="api-endpoint">
                 <span class="method">POST</span>/api/v1/admin/create-instance

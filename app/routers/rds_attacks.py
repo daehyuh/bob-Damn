@@ -15,126 +15,182 @@ logger = logging.getLogger(__name__)
 rds_client = boto3.client('rds')
 cloudwatch = boto3.client('cloudwatch')
 
-@router.post("/brute-force-attack")
-async def simulate_brute_force_attack(
-    target_user: str = Query(default="admin", description="Target username"),
-    attempts: int = Query(default=50, le=200, description="Number of login attempts")
+@router.post("/network-attack-simulation")
+async def simulate_network_attack(
+    target_hosts: str = Query(default="malicious-domain.com,suspicious-ip.net", description="Comma-separated target hosts"),
+    attack_type: str = Query(default="brute-force", description="Attack type")
 ):
     """
-    RDS 데이터베이스에 대한 무차별 대입 공격 시뮬레이션
-    여러 번의 로그인 시도 실패를 생성하여 CloudWatch 알람을 트리거
+    네트워크 기반 공격 시뮬레이션 - GuardDuty 탐지 가능
+    악성 도메인 및 IP에 대한 네트워크 연결 시도
     """
-    logger.critical(f"사용자 {target_user}에 대한 무차별 대입 공격 시뮬레이션 시작")
+    import requests
+    import socket
     
-    failed_attempts = 0
-    successful_attempts = 0
+    logger.critical(f"네트워크 공격 시뮬레이션 시작: {attack_type}")
     
-    for i in range(attempts):
-        try:
-            connection = get_db_connection()
-            cursor = connection.cursor()
-            
-            # Try random passwords
-            fake_password = f"fake_password_{i}_{int(time.time())}"
-            query = f"SELECT id FROM users WHERE username = '{target_user}' AND password = MD5('{fake_password}')"
-            
-            cursor.execute(query)
-            result = cursor.fetchone()
-            
-            if result:
-                successful_attempts += 1
-                logger.warning(f"무차별 대입: {target_user} 로그인 성공 ({i+1}번째 시도)")
-            else:
-                failed_attempts += 1
-                logger.warning(f"무차별 대입: 사용자 {target_user}의 {i+1}번째 로그인 시도 실패")
-            
-            connection.close()
-            
-            # Small delay to avoid overwhelming the database
-            time.sleep(0.1)
-            
-        except Exception as e:
-            failed_attempts += 1
-            logger.error(f"무차별 대입 {i+1}번째 시도 오류로 실패: {e}")
+    hosts = [host.strip() for host in target_hosts.split(',')]
+    results = []
     
-    logger.critical(f"무차별 대입 공격 완료: 실패 {failed_attempts}회, 성공 {successful_attempts}회")
-    
-    return {
-        "메시지": "무차별 대입 공격 시뮬레이션 완료",
-        "대상_사용자": target_user,
-        "총_시도수": attempts,
-        "실패_시도수": failed_attempts,
-        "성공_시도수": successful_attempts,
-        "공격_지속시간": f"{attempts * 0.1:.1f}초"
-    }
-
-@router.post("/sql-injection-mass-query")
-async def mass_sql_injection_queries(
-    query_count: int = Query(default=100, le=500, description="Number of malicious queries")
-):
-    """
-    대량의 SQL 인젝션 시도 실행
-    광범위한 RDS 로그와 CloudWatch 메트릭 생성
-    """
-    logger.critical(f"{query_count}개 쿼리로 대량 SQL 인젝션 공격 시작")
-    
-    malicious_payloads = [
-        "' OR '1'='1",
-        "' UNION SELECT NULL--",
-        "'; DROP TABLE users--",
-        "' OR 1=1#",
-        "admin'--",
-        "' UNION SELECT username, password FROM users--",
-        "' AND (SELECT COUNT(*) FROM users)>0--",
-        "' OR EXISTS(SELECT * FROM users WHERE username='admin')--",
-        "1' AND SLEEP(5)--",
-        "' UNION SELECT @@version--"
+    # 악성 도메인/IP 목록
+    malicious_targets = [
+        "malicious-botnet.com",
+        "c2-server.evil.com", 
+        "phishing-site.bad",
+        "cryptocurrency-stealer.net",
+        "192.168.1.100",  # 내부 IP 스캔
+        "10.0.0.1",        # 내부 네트워크
+        "threat-intelligence.malware.com"
     ]
     
-    executed_queries = []
+    # 기본 대상과 악성 대상 합치기
+    all_targets = hosts + malicious_targets
     
-    for i in range(query_count):
+    for target in all_targets[:10]:  # 최대 10개 제한
         try:
-            connection = get_db_connection()
-            cursor = connection.cursor()
+            logger.critical(f"았성 도메인/IP에 대한 네트워크 연결 시도: {target}")
             
-            # Cycle through malicious payloads
-            payload = malicious_payloads[i % len(malicious_payloads)]
-            query = f"SELECT * FROM users WHERE username = '{payload}'"
-            
-            logger.warning(f"악성 쿼리 {i+1} 실행: {query}")
-            
+            # DNS 조회 시도
             try:
-                cursor.execute(query)
-                result = cursor.fetchall()
-                executed_queries.append({
-                    "query_id": i+1,
-                    "payload": payload,
-                    "status": "executed",
-                    "result_count": len(result) if result else 0
-                })
-            except Exception as query_error:
-                executed_queries.append({
-                    "query_id": i+1,
-                    "payload": payload,
-                    "status": "failed",
-                    "error": str(query_error)
-                })
-                logger.error(f"SQL 인젝션 쿼리 실패: {query_error}")
+                socket.gethostbyname(target)
+                logger.warning(f"DNS 조회 성공: {target}")
+            except socket.gaierror:
+                logger.warning(f"DNS 조회 실패: {target} (안전함)")
             
-            connection.close()
-            time.sleep(0.05)  # Small delay
+            # HTTP 요청 시도 (GuardDuty가 탐지할 수 있는 비정상적인 아웃바운드 통신)
+            try:
+                response = requests.get(f"http://{target}", timeout=5, headers={
+                    'User-Agent': 'Malware-Scanner-v1.0',  # 의심스러운 User-Agent
+                })
+                logger.critical(f"악성 도메인에 HTTP 연결 성공: {target} (상태: {response.status_code})")
+                results.append({
+                    "대상": target,
+                    "상태": "연결_성공",
+                    "HTTP_상태": response.status_code
+                })
+            except requests.RequestException as e:
+                logger.warning(f"악성 도메인 연결 실패: {target} - {e}")
+                results.append({
+                    "대상": target,
+                    "상태": "연결_실패",
+                    "오류": str(e)[:100]
+                })
+            
+            # 포트 스캔 시뮬레이션
+            suspicious_ports = [22, 80, 443, 1337, 4444, 6667]  # 의심스러운 포트들
+            for port in suspicious_ports[:3]:  # 3개 포트만 테스트
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.settimeout(2)
+                try:
+                    # 실제 IP인 경우만 포트 스캔
+                    if target.replace('.', '').isdigit() or '192.168' in target or '10.0' in target:
+                        result = sock.connect_ex((target, port))
+                        if result == 0:
+                            logger.critical(f"의심스러운 포트 열림 감지: {target}:{port}")
+                        else:
+                            logger.info(f"포트 닫힘: {target}:{port}")
+                except Exception:
+                    pass
+                finally:
+                    sock.close()
+            
+            time.sleep(0.5)  # 공격 간격
             
         except Exception as e:
-            logger.error(f"대량 SQL 인젝션 시도 {i+1} 실패: {e}")
+            logger.error(f"네트워크 공격 시뮬레이션 오류: {target} - {e}")
     
-    logger.critical(f"대량 SQL 인젝션 공격 완료: {len(executed_queries)}개 쿼리 실행됨")
+    logger.critical(f"네트워크 공격 시뮬레이션 완료: {len(all_targets)}개 대상")
     
     return {
-        "메시지": "대량 SQL 인젝션 공격 완료",
-        "총_쿼리수": query_count,
-        "실행된_쿼리수": len(executed_queries),
-        "샘플_쿼리": executed_queries[:10]  # 샘플로 처음 10개 반환
+        "메시지": "네트워크 공격 시뮬레이션 완료",
+        "공격_유형": attack_type,
+        "대상_목록": all_targets[:10],
+        "연결_결과": results,
+        "경고": "GuardDuty에서 이 활동을 악성 네트워크 통신으로 탐지할 수 있습니다"
+    }
+
+@router.post("/tor-network-simulation")
+async def simulate_tor_network_activity(
+    tor_exit_nodes: int = Query(default=5, le=10, description="Number of Tor exit nodes to simulate")
+):
+    """
+    Tor 네트워크 활동 시뮬레이션 - GuardDuty 탐지 가능
+    알려진 Tor exit node IP들과 연결 시도
+    """
+    import requests
+    
+    logger.critical(f"Tor 네트워크 활동 시뮬레이션 시작: {tor_exit_nodes}개 노드")
+    
+    # 알려진 Tor Exit Node IP 주소들 (예시용, 실제 Tor IP들)
+    tor_exit_ips = [
+        "199.87.154.255",  # 알려진 Tor exit node
+        "185.220.101.182", # 알려진 Tor exit node  
+        "185.220.101.183", # 알려진 Tor exit node
+        "199.195.248.76",  # 알려진 Tor exit node
+        "185.220.102.8",   # 알려진 Tor exit node
+        "185.220.102.7",   # 알려진 Tor exit node
+        "199.195.251.84",  # 알려진 Tor exit node
+        "185.220.103.119", # 알려진 Tor exit node
+        "185.220.103.118", # 알려진 Tor exit node
+        "199.195.252.139"  # 알려진 Tor exit node
+    ]
+    
+    results = []
+    
+    for i in range(min(tor_exit_nodes, len(tor_exit_ips))):
+        tor_ip = tor_exit_ips[i]
+        try:
+            logger.critical(f"Tor Exit Node로 의심스러운 네트워크 활동: {tor_ip}")
+            
+            # Tor 네트워크를 사용한 것처럼 보이는 HTTP 요청
+            headers = {
+                'User-Agent': 'Tor Browser 11.0.15',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.5',
+                'Accept-Encoding': 'gzip, deflate',
+                'Connection': 'keep-alive',
+                'Upgrade-Insecure-Requests': '1'
+            }
+            
+            # 알려진 악성 도메인들에 요청 (실제로는 연결되지 않음)
+            malicious_domains = [
+                "dark-web-marketplace.onion.to",
+                "ransomware-c2.tor2web.io", 
+                "illegal-content.onion.link",
+                "bitcoin-mixer.onion.pet"
+            ]
+            
+            for domain in malicious_domains[:2]:  # 2개만 테스트
+                try:
+                    # 실제 HTTP 요청 (대부분 실패할 것이지만 GuardDuty에서 탐지할 수 있는 패턴)
+                    response = requests.get(f"http://{domain}", headers=headers, timeout=5)
+                    logger.critical(f"Tor를 통한 악성 도메인 접근 시도: {domain}")
+                    results.append({
+                        "tor_exit_ip": tor_ip,
+                        "대상_도메인": domain,
+                        "상태": "연결_성공"
+                    })
+                except requests.RequestException as e:
+                    logger.warning(f"Tor를 통한 악성 도메인 연결 실패: {domain} - {str(e)[:50]}")
+                    results.append({
+                        "tor_exit_ip": tor_ip,
+                        "대상_도메인": domain,
+                        "상태": "연결_실패"
+                    })
+            
+            time.sleep(1)  # Tor 노드 간 대기
+            
+        except Exception as e:
+            logger.error(f"Tor 네트워크 시뮬레이션 오류: {tor_ip} - {e}")
+    
+    logger.critical(f"Tor 네트워크 활동 시뮬레이션 완료")
+    
+    return {
+        "메시지": "Tor 네트워크 활동 시뮬레이션 완료",
+        "Tor_Exit_노드수": tor_exit_nodes,
+        "사용된_IP": tor_exit_ips[:tor_exit_nodes],
+        "연결_결과": results,
+        "경고": "GuardDuty에서 이 활동을 Tor 네트워크 사용 및 악성 도메인 연결로 탐지할 수 있습니다"
     }
 
 @router.post("/connection-exhaustion")

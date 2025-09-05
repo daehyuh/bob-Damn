@@ -33,74 +33,144 @@ def verify_admin_token(authorization: Optional[str] = Header(None)):
         raise HTTPException(status_code=401, detail="잘못된 토큰입니다")
 
 @router.get("/users")
-async def list_all_users(user=None):
-    logger.warning("적절한 인증 확인 없이 관리자 엔드포인트에 접근")
+async def list_all_users(user_id: Optional[str] = Query(None)):
+    """
+    사용자 목록 조회 - IDOR 취약점 (Insecure Direct Object Reference)
+    user_id 파라미터로 다른 사용자 정보에 접근 가능
+    """
+    logger.warning("인증 없이 사용자 목록 엔드포인트에 접근")
+    
+    from app.routers.users import get_db_connection
     
     try:
-        connection = None  # This would normally connect to DB
+        connection = get_db_connection()
+        cursor = connection.cursor()
         
-        sample_users = [
-            {"id": 1, "username": "admin", "email": "admin@example.com"},
-            {"id": 2, "username": "user1", "email": "user1@example.com"},
-            {"id": 3, "username": "test", "email": "test@example.com"}
-        ]
+        if user_id:
+            # IDOR 취약점: 직접적인 객체 참조로 다른 사용자 데이터 접근
+            query = f"SELECT id, username, email, created_at FROM users WHERE id = {user_id}"
+            logger.critical(f"IDOR 취약점 시도: {query}")
+        else:
+            query = "SELECT id, username, email, created_at FROM users LIMIT 10"
+            logger.warning("백도어 인증 없이 전체 사용자 목록 조회")
         
-        return {"사용자목록": sample_users}
+        cursor.execute(query)
+        results = cursor.fetchall()
+        
+        users = []
+        for result in results:
+            users.append({
+                "id": result[0],
+                "사용자명": result[1],
+                "이메일": result[2],
+                "생성일시": str(result[3]) if result[3] else None
+            })
+        
+        return {"사용자목록": users}
     
     except Exception as e:
         logger.error(f"사용자 목록 조회 오류: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        if 'connection' in locals():
+            connection.close()
 
-@router.post("/create-role")
-async def create_iam_role(role_name: str, user=None):
-    logger.critical(f"IAM 역할 생성 시도: {role_name}")
+@router.post("/sudo-command")
+async def execute_sudo_command(command: str, password: str = "password123"):
+    """
+    sudo 명령어 실행 - 권한 상승 취약점
+    약한 비밀번호 검증으로 sudo 권한 획득 가능
+    """
+    logger.critical(f"sudo 명령어 실행 시도: {command}")
+    
+    import subprocess
     
     try:
-        assume_role_policy = {
-            "Version": "2012-10-17",
-            "Statement": [
-                {
-                    "Effect": "Allow",
-                    "Principal": {"Service": "ec2.amazonaws.com"},
-                    "Action": "sts:AssumeRole"
-                }
-            ]
-        }
+        # 약한 비밀번호 검증
+        if password in ["password123", "admin", "123456", "password", "root"]:
+            logger.critical(f"약한 비밀번호로 sudo 권한 획득: {password}")
+            
+            # 위험한 명령어 차단
+            dangerous_cmds = ["rm -rf", "format", "shutdown", "reboot", "dd if="]
+            for dangerous in dangerous_cmds:
+                if dangerous in command:
+                    logger.error(f"위험한 명령어 차단: {command}")
+                    raise HTTPException(status_code=403, detail="위험한 명령어는 실행할 수 없습니다")
+            
+            # sudo 명령어 실행 (시뮬레이션)
+            if command.startswith("sudo "):
+                actual_command = command[5:]  # "sudo " 제거
+            else:
+                actual_command = command
+                
+            result = subprocess.run(
+                actual_command.split(),
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+            
+            logger.critical(f"sudo 명령어 실행 완료: {command} (return_code: {result.returncode})")
+            
+            return {
+                "메시지": f"sudo 명령어가 실행되었습니다",
+                "명령어": command,
+                "반환_코드": result.returncode,
+                "출력": result.stdout[:1000],
+                "에러": result.stderr[:1000]
+            }
+        else:
+            logger.warning(f"잘못된 sudo 비밀번호: {password}")
+            raise HTTPException(status_code=401, detail="sudo 비밀번호가 잘못되었습니다")
+            
+    except subprocess.TimeoutExpired:
+        logger.error(f"sudo 명령어 실행 시간 초과: {command}")
+        raise HTTPException(status_code=408, detail="명령어 실행 시간 초과")
+    except Exception as e:
+        logger.error(f"sudo 명령어 실행 실패: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/change-user-role")
+async def change_user_role(user_id: int, new_role: str = "admin", admin_key: str = "admin123"):
+    """
+    사용자 역할 변경 - 수평적 권한 상승 취약점
+    약한 admin_key로 다른 사용자를 관리자로 승격 가능
+    """
+    logger.critical(f"사용자 {user_id}의 역할을 {new_role}로 변경 시도")
+    
+    from app.routers.users import get_db_connection
+    
+    try:
+        # 약한 관리자 키 검증
+        if admin_key not in ["admin123", "masterkey", "superuser", "root123"]:
+            logger.warning(f"잘못된 관리자 키: {admin_key}")
+            raise HTTPException(status_code=403, detail="관리자 권한이 없습니다")
         
-        response = iam_client.create_role(
-            RoleName=role_name,
-            AssumeRolePolicyDocument=json.dumps(assume_role_policy),
-            Description=f"Role created by vulnerable webapp at {datetime.now()}"
-        )
+        logger.critical(f"약한 관리자 키로 권한 상승 성공: {admin_key}")
         
-        logger.critical(f"IAM 역할이 성공적으로 생성되었습니다: {role_name}")
+        connection = get_db_connection()
+        cursor = connection.cursor()
         
+        # 사용자 역할 업데이트 (실제로는 로그만 기록)
+        logger.critical(f"사용자 ID {user_id}의 역할이 {new_role}로 변경됨")
+        
+        # 역할 변경 시뮬레이션
+        if new_role == "admin":
+            logger.critical(f"사용자 {user_id}가 관리자 권한을 획득했습니다!")
+            
         return {
-            "메시지": f"역할 {role_name}이 성공적으로 생성되었습니다",
-            "arn": response['Role']['Arn']
+            "메시지": f"사용자 {user_id}의 역할이 {new_role}로 변경되었습니다",
+            "사용자_ID": user_id,
+            "새로운_역할": new_role,
+            "권한": ["사용자_관리", "시스템_접근", "DB_접근"] if new_role == "admin" else ["기본_사용자"]
         }
         
     except Exception as e:
-        logger.error(f"IAM 역할 생성 실패: {e}")
+        logger.error(f"사용자 역할 변경 실패: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-
-@router.post("/attach-policy")
-async def attach_policy_to_role(role_name: str, policy_arn: str, user=None):
-    logger.critical(f"역할 {role_name}에 정책 {policy_arn} 연결 시도")
-    
-    try:
-        iam_client.attach_role_policy(
-            RoleName=role_name,
-            PolicyArn=policy_arn
-        )
-        
-        logger.critical(f"정책이 성공적으로 연결되었습니다: {policy_arn} -> {role_name}")
-        
-        return {"메시지": f"정책 {policy_arn}이 역할 {role_name}에 연결되었습니다"}
-        
-    except Exception as e:
-        logger.error(f"정책 연결 실패: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        if 'connection' in locals():
+            connection.close()
 
 @router.post("/create-instance")
 async def create_ec2_instance(instance_type: str = "t2.micro", user=None):
