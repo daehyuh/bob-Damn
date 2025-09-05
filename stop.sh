@@ -2,7 +2,7 @@
 
 # 취약한 웹 애플리케이션 중지 스크립트
 
-APP_DIR="/home/ec2-user/bob-Damn/vulnerable-webapp"
+APP_DIR="$(cd "$(dirname "$0")" && pwd)"
 PID_FILE="$APP_DIR/app.pid"
 
 echo "취약한 웹 애플리케이션을 중지합니다..."

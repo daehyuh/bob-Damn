@@ -2,7 +2,7 @@
 
 # 취약한 웹 애플리케이션 상태 확인 스크립트
 
-APP_DIR="/home/ec2-user/bob-Damn/vulnerable-webapp"
+APP_DIR="$(cd "$(dirname "$0")" && pwd)"
 PID_FILE="$APP_DIR/app.pid"
 LOG_FILE="$APP_DIR/app.log"
 
@@ -69,8 +69,17 @@ fi
 
 echo ""
 echo "🌍 접속 정보:"
+# AWS 환경에서 메타데이터 서비스 시도
 PUBLIC_IP=$(curl -s --connect-timeout 5 http://169.254.169.254/latest/meta-data/public-ipv4 2>/dev/null)
 PRIVATE_IP=$(curl -s --connect-timeout 5 http://169.254.169.254/latest/meta-data/local-ipv4 2>/dev/null)
+
+# AWS 메타데이터 서비스를 사용할 수 없는 경우 대안 사용
+if [ -z "$PUBLIC_IP" ]; then
+    PUBLIC_IP=$(curl -s --connect-timeout 5 ifconfig.me 2>/dev/null || curl -s --connect-timeout 5 ipinfo.io/ip 2>/dev/null)
+fi
+if [ -z "$PRIVATE_IP" ]; then
+    PRIVATE_IP=$(hostname -I | awk '{print $1}')
+fi
 
 if [ -n "$PUBLIC_IP" ]; then
     echo "공용 IP: http://$PUBLIC_IP:8000"

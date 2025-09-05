@@ -2,7 +2,7 @@
 
 # 취약한 웹 애플리케이션 시작 스크립트
 
-APP_DIR="/home/ec2-user/bob-Damn/vulnerable-webapp"
+APP_DIR="$(cd "$(dirname "$0")" && pwd)"
 LOG_FILE="$APP_DIR/app.log"
 PID_FILE="$APP_DIR/app.pid"
 
@@ -47,8 +47,19 @@ if ps -p $APP_PID > /dev/null 2>&1; then
     echo "✅ 애플리케이션이 성공적으로 시작되었습니다!"
     echo "PID: $APP_PID"
     echo "포트: 8000"
-    echo "웹 인터페이스: http://$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4):8000"
-    echo "API 문서: http://$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4):8000/docs"
+    # 서버 IP 자동 감지
+    PUBLIC_IP=$(curl -s --connect-timeout 5 http://169.254.169.254/latest/meta-data/public-ipv4 2>/dev/null)
+    if [ -z "$PUBLIC_IP" ]; then
+        # AWS 메타데이터 서비스를 사용할 수 없는 경우 외부 서비스 사용
+        PUBLIC_IP=$(curl -s --connect-timeout 5 ifconfig.me 2>/dev/null || curl -s --connect-timeout 5 ipinfo.io/ip 2>/dev/null)
+    fi
+    if [ -z "$PUBLIC_IP" ]; then
+        # 외부 서비스도 사용할 수 없는 경우 로컬 IP 사용
+        PUBLIC_IP=$(hostname -I | awk '{print $1}')
+    fi
+    
+    echo "웹 인터페이스: http://$PUBLIC_IP:8000"
+    echo "API 문서: http://$PUBLIC_IP:8000/docs"
     echo ""
     echo "실시간 로그 확인: tail -f $LOG_FILE"
     echo "애플리케이션 중지: ./stop.sh"
