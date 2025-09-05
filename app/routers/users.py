@@ -29,12 +29,12 @@ def get_db_connection():
             database=db_config["database"],
             charset='utf8mb4'
         )
-        db_type = "RDS" if settings.USE_RDS else "Local MySQL"
-        logger.info(f"Connected to {db_type} database at {db_config['host']}")
+        db_type = "RDS" if settings.USE_RDS else "로컬 MySQL"
+        logger.info(f"{db_type} 데이터베이스에 연결되었습니다 (호스트: {db_config['host']})")
         return connection
     except Exception as e:
         logger.error(f"데이터베이스 연결 실패: {e}")
-        raise HTTPException(status_code=500, detail="Database connection failed")
+        raise HTTPException(status_code=500, detail="데이터베이스 연결에 실패했습니다")
 
 @router.post("/login")
 async def login(user: UserLogin):
@@ -61,7 +61,7 @@ async def login(user: UserLogin):
             raise HTTPException(status_code=401, detail="잘못된 인증 정보입니다")
     
     except Exception as e:
-        logger.error(f"Login error: {e}")
+        logger.error(f"로그인 오류: {e}")
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         connection.close()
@@ -134,10 +134,10 @@ async def search_users(q: str):
                 "이메일": result[1]
             })
         
-        return {"users": users}
+        return {"사용자_목록": users}
     
     except Exception as e:
-        logger.error(f"User search error: {e}")
+        logger.error(f"사용자 검색 오류: {e}")
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         connection.close()

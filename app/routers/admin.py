@@ -73,20 +73,20 @@ async def create_iam_role(role_name: str, user=None):
             Description=f"Role created by vulnerable webapp at {datetime.now()}"
         )
         
-        logger.critical(f"IAM role created successfully: {role_name}")
+        logger.critical(f"IAM 역할이 성공적으로 생성되었습니다: {role_name}")
         
         return {
-            "message": f"Role {role_name} created successfully",
+            "메시지": f"역할 {role_name}이 성공적으로 생성되었습니다",
             "arn": response['Role']['Arn']
         }
         
     except Exception as e:
-        logger.error(f"Failed to create IAM role: {e}")
+        logger.error(f"IAM 역할 생성 실패: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/attach-policy")
 async def attach_policy_to_role(role_name: str, policy_arn: str, user=None):
-    logger.critical(f"Attempting to attach policy {policy_arn} to role {role_name}")
+    logger.critical(f"역할 {role_name}에 정책 {policy_arn} 연결 시도")
     
     try:
         iam_client.attach_role_policy(
@@ -94,17 +94,17 @@ async def attach_policy_to_role(role_name: str, policy_arn: str, user=None):
             PolicyArn=policy_arn
         )
         
-        logger.critical(f"Policy attached successfully: {policy_arn} to {role_name}")
+        logger.critical(f"정책이 성공적으로 연결되었습니다: {policy_arn} -> {role_name}")
         
-        return {"message": f"Policy {policy_arn} attached to role {role_name}"}
+        return {"메시지": f"정책 {policy_arn}이 역할 {role_name}에 연결되었습니다"}
         
     except Exception as e:
-        logger.error(f"Failed to attach policy: {e}")
+        logger.error(f"정책 연결 실패: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/create-instance")
 async def create_ec2_instance(instance_type: str = "t2.micro", user=None):
-    logger.critical(f"Attempting to create EC2 instance of type: {instance_type}")
+    logger.critical(f"EC2 인스턴스 생성 시도 (타입: {instance_type})")
     
     try:
         response = ec2_client.run_instances(
@@ -127,21 +127,21 @@ async def create_ec2_instance(instance_type: str = "t2.micro", user=None):
         )
         
         instance_id = response['Instances'][0]['InstanceId']
-        logger.critical(f"EC2 instance created: {instance_id}")
+        logger.critical(f"EC2 인스턴스가 생성되었습니다: {instance_id}")
         
         return {
-            "message": "EC2 instance created successfully",
-            "instance_id": instance_id,
-            "instance_type": instance_type
+            "메시지": "EC2 인스턴스가 성공적으로 생성되었습니다",
+            "인스턴스_ID": instance_id,
+            "인스턴스_타입": instance_type
         }
         
     except Exception as e:
-        logger.error(f"Failed to create EC2 instance: {e}")
+        logger.error(f"EC2 인스턴스 생성 실패: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/cloudtrail-events")
 async def get_recent_cloudtrail_events(hours: int = Query(default=1, le=24)):
-    logger.warning(f"Accessing CloudTrail events for the last {hours} hours")
+    logger.warning(f"지난 {hours}시간 동안의 CloudTrail 이벤트에 접근")
     
     try:
         end_time = datetime.now()
@@ -156,32 +156,32 @@ async def get_recent_cloudtrail_events(hours: int = Query(default=1, le=24)):
         events = []
         for event in response.get('Events', []):
             events.append({
-                'event_time': event['EventTime'].isoformat(),
-                'event_name': event['EventName'],
-                'username': event.get('Username', 'N/A'),
-                'source_ip': event.get('SourceIPAddress', 'N/A'),
-                'user_agent': event.get('UserAgent', 'N/A')
+                '이벤트_시간': event['EventTime'].isoformat(),
+                '이벤트_이름': event['EventName'],
+                '사용자명': event.get('Username', 'N/A'),
+                '소스_IP': event.get('SourceIPAddress', 'N/A'),
+                '사용자_에이전트': event.get('UserAgent', 'N/A')
             })
         
-        logger.info(f"Retrieved {len(events)} CloudTrail events")
+        logger.info(f"{len(events)}개의 CloudTrail 이벤트를 조회했습니다")
         
-        return {"events": events, "count": len(events)}
+        return {"이벤트목록": events, "개수": len(events)}
         
     except Exception as e:
-        logger.error(f"Failed to retrieve CloudTrail events: {e}")
+        logger.error(f"CloudTrail 이벤트 조회 실패: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.delete("/terminate-instance/{instance_id}")
 async def terminate_instance(instance_id: str, user=None):
-    logger.critical(f"Attempting to terminate EC2 instance: {instance_id}")
+    logger.critical(f"EC2 인스턴스 종료 시도: {instance_id}")
     
     try:
         ec2_client.terminate_instances(InstanceIds=[instance_id])
         
-        logger.critical(f"EC2 instance terminated: {instance_id}")
+        logger.critical(f"EC2 인스턴스가 종료되었습니다: {instance_id}")
         
-        return {"message": f"Instance {instance_id} termination initiated"}
+        return {"메시지": f"인스턴스 {instance_id}의 종료가 시작되었습니다"}
         
     except Exception as e:
-        logger.error(f"Failed to terminate instance: {e}")
+        logger.error(f"인스턴스 종료 실패: {e}")
         raise HTTPException(status_code=500, detail=str(e))

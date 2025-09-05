@@ -8,7 +8,7 @@ class Settings:
     AWS_SECRET_ACCESS_KEY: str = os.getenv("AWS_SECRET_ACCESS_KEY", "")
     AWS_DEFAULT_REGION: str = os.getenv("AWS_DEFAULT_REGION", "us-east-1")
     
-    # RDS Configuration
+    # RDS 설정
     USE_RDS: bool = os.getenv("USE_RDS", "false").lower() == "true"
     RDS_ENDPOINT: str = os.getenv("RDS_ENDPOINT", "")
     RDS_PORT: int = int(os.getenv("RDS_PORT", "3306"))
@@ -16,7 +16,7 @@ class Settings:
     RDS_PASSWORD: str = os.getenv("RDS_PASSWORD", "")
     RDS_DB_NAME: str = os.getenv("RDS_DB_NAME", "vulnerable_db")
     
-    # Local Database (fallback)
+    # 로컬 데이터베이스 (대체)
     DB_HOST: str = os.getenv("DB_HOST", "localhost")
     DB_USER: str = os.getenv("DB_USER", "root")
     DB_PASSWORD: str = os.getenv("DB_PASSWORD", "vulnerable123")
@@ -30,7 +30,7 @@ class Settings:
     
     @property
     def database_config(self):
-        """Get database configuration based on USE_RDS setting"""
+        """USE_RDS 설정에 따라 데이터베이스 구성 가져오기"""
         if self.USE_RDS and self.RDS_ENDPOINT:
             return {
                 "host": self.RDS_ENDPOINT,

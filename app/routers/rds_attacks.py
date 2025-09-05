@@ -21,10 +21,10 @@ async def simulate_brute_force_attack(
     attempts: int = Query(default=50, le=200, description="Number of login attempts")
 ):
     """
-    Simulate brute force attack against RDS database
-    Generates multiple failed login attempts to trigger CloudWatch alarms
+    RDS 데이터베이스에 대한 무차별 대입 공격 시뮬레이션
+    여러 번의 로그인 시도 실패를 생성하여 CloudWatch 알람을 트리거
     """
-    logger.critical(f"Starting brute force attack simulation against user: {target_user}")
+    logger.critical(f"사용자 {target_user}에 대한 무차별 대입 공격 시뮬레이션 시작")
     
     failed_attempts = 0
     successful_attempts = 0
@@ -43,10 +43,10 @@ async def simulate_brute_force_attack(
             
             if result:
                 successful_attempts += 1
-                logger.warning(f"Brute force: Successful login for {target_user} (attempt {i+1})")
+                logger.warning(f"무차별 대입: {target_user} 로그인 성공 ({i+1}번째 시도)")
             else:
                 failed_attempts += 1
-                logger.warning(f"Brute force: Failed login attempt {i+1} for user {target_user}")
+                logger.warning(f"무차별 대입: 사용자 {target_user}의 {i+1}번째 로그인 시도 실패")
             
             connection.close()
             
@@ -55,17 +55,17 @@ async def simulate_brute_force_attack(
             
         except Exception as e:
             failed_attempts += 1
-            logger.error(f"Brute force attempt {i+1} failed with error: {e}")
+            logger.error(f"무차별 대입 {i+1}번째 시도 오류로 실패: {e}")
     
-    logger.critical(f"Brute force attack completed: {failed_attempts} failed, {successful_attempts} successful")
+    logger.critical(f"무차별 대입 공격 완료: 실패 {failed_attempts}회, 성공 {successful_attempts}회")
     
     return {
-        "message": "Brute force attack simulation completed",
-        "target_user": target_user,
-        "total_attempts": attempts,
-        "failed_attempts": failed_attempts,
-        "successful_attempts": successful_attempts,
-        "attack_duration": f"{attempts * 0.1:.1f} seconds"
+        "메시지": "무차별 대입 공격 시뮬레이션 완료",
+        "대상_사용자": target_user,
+        "총_시도수": attempts,
+        "실패_시도수": failed_attempts,
+        "성공_시도수": successful_attempts,
+        "공격_지속시간": f"{attempts * 0.1:.1f}초"
     }
 
 @router.post("/sql-injection-mass-query")
@@ -73,10 +73,10 @@ async def mass_sql_injection_queries(
     query_count: int = Query(default=100, le=500, description="Number of malicious queries")
 ):
     """
-    Execute large number of SQL injection attempts
-    Generates extensive RDS logs and CloudWatch metrics
+    대량의 SQL 인젝션 시도 실행
+    광범위한 RDS 로그와 CloudWatch 메트릭 생성
     """
-    logger.critical(f"Starting mass SQL injection attack with {query_count} queries")
+    logger.critical(f"{query_count}개 쿼리로 대량 SQL 인젝션 공격 시작")
     
     malicious_payloads = [
         "' OR '1'='1",
@@ -102,7 +102,7 @@ async def mass_sql_injection_queries(
             payload = malicious_payloads[i % len(malicious_payloads)]
             query = f"SELECT * FROM users WHERE username = '{payload}'"
             
-            logger.warning(f"Executing malicious query {i+1}: {query}")
+            logger.warning(f"악성 쿼리 {i+1} 실행: {query}")
             
             try:
                 cursor.execute(query)
@@ -120,21 +120,21 @@ async def mass_sql_injection_queries(
                     "status": "failed",
                     "error": str(query_error)
                 })
-                logger.error(f"SQL injection query failed: {query_error}")
+                logger.error(f"SQL 인젝션 쿼리 실패: {query_error}")
             
             connection.close()
             time.sleep(0.05)  # Small delay
             
         except Exception as e:
-            logger.error(f"Mass SQL injection attempt {i+1} failed: {e}")
+            logger.error(f"대량 SQL 인젝션 시도 {i+1} 실패: {e}")
     
-    logger.critical(f"Mass SQL injection attack completed: {len(executed_queries)} queries executed")
+    logger.critical(f"대량 SQL 인젝션 공격 완료: {len(executed_queries)}개 쿼리 실행됨")
     
     return {
-        "message": "Mass SQL injection attack completed",
-        "total_queries": query_count,
-        "executed_queries": len(executed_queries),
-        "sample_queries": executed_queries[:10]  # Return first 10 as sample
+        "메시지": "대량 SQL 인젝션 공격 완료",
+        "총_쿼리수": query_count,
+        "실행된_쿼리수": len(executed_queries),
+        "샘플_쿼리": executed_queries[:10]  # 샘플로 처음 10개 반환
     }
 
 @router.post("/connection-exhaustion")
@@ -142,10 +142,10 @@ async def simulate_connection_exhaustion(
     concurrent_connections: int = Query(default=20, le=50, description="Number of concurrent connections")
 ):
     """
-    Create many concurrent database connections to exhaust RDS connection pool
-    Triggers CloudWatch connection count alarms
+    RDS 연결 풀을 고갈시키기 위해 다수의 동시 데이터베이스 연결 생성
+    CloudWatch 연결 수 알람을 트리거
     """
-    logger.critical(f"Starting connection exhaustion attack with {concurrent_connections} connections")
+    logger.critical(f"{concurrent_connections}개 연결로 연결 고갈 공격 시작")
     
     connections = []
     active_connections = 0
@@ -154,18 +154,18 @@ async def simulate_connection_exhaustion(
         try:
             connection = get_db_connection()
             connections.append(connection)
-            logger.warning(f"Connection {connection_id} established and held")
+            logger.warning(f"연결 {connection_id}가 설정되고 유지되고 있습니다")
             
             # Hold connection for extended time
             cursor = connection.cursor()
             cursor.execute("SELECT SLEEP(30)")  # Hold for 30 seconds
             
         except Exception as e:
-            logger.error(f"Connection {connection_id} failed: {e}")
+            logger.error(f"연결 {connection_id} 실패: {e}")
         finally:
             if connection:
                 connection.close()
-                logger.info(f"Connection {connection_id} closed")
+                logger.info(f"연결 {connection_id} 종료")
     
     # Create concurrent connections
     threads = []
@@ -175,24 +175,24 @@ async def simulate_connection_exhaustion(
         thread.start()
         time.sleep(0.1)  # Stagger connection attempts
     
-    logger.warning(f"Created {len(threads)} concurrent database connections")
+    logger.warning(f"{len(threads)}개의 동시 데이터베이스 연결을 생성했습니다")
     
     # Wait a bit then close connections
     time.sleep(5)
     
     return {
-        "message": "Connection exhaustion attack initiated",
-        "concurrent_connections": concurrent_connections,
-        "note": "Connections will be held for 30 seconds to simulate exhaustion"
+        "메시지": "연결 고갈 공격이 시작되었습니다",
+        "동시_연결수": concurrent_connections,
+        "참고사항": "고갈 시뮬레이션을 위해 연결을 30초 동안 유지합니다"
     }
 
 @router.get("/rds-performance-impact")
 async def create_performance_impact():
     """
-    Execute resource-intensive queries to impact RDS performance
-    Generates CPU and memory usage spikes in CloudWatch
+    RDS 성능에 영향을 주기 위해 리소스 집약적인 쿼리 실행
+    CloudWatch에서 CPU 및 메모리 사용률 스파이크 생성
     """
-    logger.critical("Starting RDS performance impact simulation")
+    logger.critical("RDS 성능 영향 시뮬레이션 시작")
     
     performance_queries = [
         "SELECT COUNT(*) FROM users u1 CROSS JOIN users u2 CROSS JOIN users u3",
@@ -210,7 +210,7 @@ async def create_performance_impact():
             cursor = connection.cursor()
             
             start_time = time.time()
-            logger.warning(f"Executing performance-intensive query {i+1}: {query}")
+            logger.warning(f"성능 집약적 쿼리 {i+1} 실행: {query}")
             
             cursor.execute(query)
             result = cursor.fetchall()
@@ -225,11 +225,11 @@ async def create_performance_impact():
                 "query": query[:100] + "..." if len(query) > 100 else query
             })
             
-            logger.info(f"Performance query {i+1} completed in {execution_time:.2f} seconds")
+            logger.info(f"성능 쿼리 {i+1}이 {execution_time:.2f}초에 완료되었습니다")
             connection.close()
             
         except Exception as e:
-            logger.error(f"Performance query {i+1} failed: {e}")
+            logger.error(f"성능 쿼리 {i+1} 실패: {e}")
             executed_queries.append({
                 "query_id": i+1,
                 "status": "failed",
@@ -237,12 +237,12 @@ async def create_performance_impact():
                 "query": query[:100] + "..." if len(query) > 100 else query
             })
     
-    logger.critical("RDS performance impact simulation completed")
+    logger.critical("RDS 성능 영향 시뮬레이션 완료")
     
     return {
-        "message": "RDS performance impact simulation completed",
-        "executed_queries": executed_queries,
-        "total_execution_time": sum(float(q["execution_time"].split()[0]) for q in executed_queries if "execution_time" in q)
+        "메시지": "RDS 성능 영향 시뮬레이션 완료",
+        "실행된_쿼리": executed_queries,
+        "총_실행시간": sum(float(q["execution_time"].split()[0]) for q in executed_queries if "execution_time" in q)
     }
 
 @router.post("/create-rds-instance")
@@ -251,10 +251,10 @@ async def create_vulnerable_rds_instance(
     publicly_accessible: bool = Query(default=True, description="Make RDS publicly accessible")
 ):
     """
-    Create a vulnerable RDS instance with weak security settings
-    Generates CloudTrail events for RDS creation
+    약한 보안 설정으로 취약한 RDS 인스턴스 생성
+    RDS 생성에 대한 CloudTrail 이벤트 생성
     """
-    logger.critical(f"Attempting to create vulnerable RDS instance: {instance_class}")
+    logger.critical(f"취약한 RDS 인스턴스 생성 시도: {instance_class}")
     
     instance_identifier = f"vulnerable-db-{int(time.time())}"
     
@@ -279,33 +279,33 @@ async def create_vulnerable_rds_instance(
             ]
         )
         
-        logger.critical(f"Vulnerable RDS instance created: {instance_identifier}")
+        logger.critical(f"취약한 RDS 인스턴스가 생성되었습니다: {instance_identifier}")
         
         return {
-            "message": "Vulnerable RDS instance creation initiated",
-            "instance_identifier": instance_identifier,
-            "instance_class": instance_class,
-            "publicly_accessible": publicly_accessible,
-            "security_issues": [
-                "Publicly accessible",
-                "Weak password",
-                "No encryption",
-                "No backups",
-                "No deletion protection"
+            "메시지": "취약한 RDS 인스턴스 생성이 시작되었습니다",
+            "인스턴스_식별자": instance_identifier,
+            "인스턴스_클래스": instance_class,
+            "공개_접근_가능": publicly_accessible,
+            "보안_문제점": [
+                "공개 접근 가능",
+                "약한 비밀번호",
+                "암호화 없음",
+                "백업 없음",
+                "삭제 보호 없음"
             ]
         }
         
     except Exception as e:
-        logger.error(f"Failed to create RDS instance: {e}")
+        logger.error(f"RDS 인스턴스 생성 실패: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.delete("/terminate-rds-instance/{instance_id}")
 async def terminate_rds_instance(instance_id: str):
     """
-    Terminate RDS instance
-    Generates CloudTrail deletion events
+    RDS 인스턴스 종료
+    CloudTrail 삭제 이벤트 생성
     """
-    logger.critical(f"Attempting to terminate RDS instance: {instance_id}")
+    logger.critical(f"RDS 인스턴스 종료 시도: {instance_id}")
     
     try:
         response = rds_client.delete_db_instance(
@@ -314,23 +314,23 @@ async def terminate_rds_instance(instance_id: str):
             DeleteAutomatedBackups=True
         )
         
-        logger.critical(f"RDS instance termination initiated: {instance_id}")
+        logger.critical(f"RDS 인스턴스 종료가 시작되었습니다: {instance_id}")
         
         return {
-            "message": f"RDS instance {instance_id} termination initiated",
-            "warning": "Final snapshot skipped - data will be permanently lost"
+            "메시지": f"RDS 인스턴스 {instance_id} 종료가 시작되었습니다",
+            "경고": "최종 스냅샷이 생략되었습니다 - 데이터가 영구적으로 손실됩니다"
         }
         
     except Exception as e:
-        logger.error(f"Failed to terminate RDS instance: {e}")
+        logger.error(f"RDS 인스턴스 종료 실패: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/rds-snapshots")
 async def list_rds_snapshots():
     """
-    List RDS snapshots (potential data exposure)
+    RDS 스냅샷 목록 (데이터 노출 가능성)
     """
-    logger.warning("Listing RDS snapshots - potential data exposure")
+    logger.warning("RDS 스냅샷 목록 조회 - 데이터 노출 가능성")
     
     try:
         response = rds_client.describe_db_snapshots(MaxRecords=50)
@@ -346,13 +346,13 @@ async def list_rds_snapshots():
                 'public': snapshot.get('AttributeNames', []) if 'AttributeNames' in snapshot else []
             })
         
-        logger.info(f"Retrieved {len(snapshots)} RDS snapshots")
+        logger.info(f"{len(snapshots)}개의 RDS 스냅샷을 조회했습니다")
         
         return {
-            "snapshots": snapshots,
-            "count": len(snapshots)
+            "스냅샷_목록": snapshots,
+            "개수": len(snapshots)
         }
         
     except Exception as e:
-        logger.error(f"Failed to list RDS snapshots: {e}")
+        logger.error(f"RDS 스냅샷 목록 조회 실패: {e}")
         raise HTTPException(status_code=500, detail=str(e))

@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vulnerable Web Application</title>
+    <title>취약한 웹 애플리케이션</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f5f5f5; }
         .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
@@ -18,118 +18,118 @@
 </head>
 <body>
     <div class="container">
-        <h1>🔓 Vulnerable Web Application</h1>
+        <h1>🔓 취약한 웹 애플리케이션</h1>
         
         <div class="warning">
-            <strong>⚠️ WARNING:</strong> This application contains intentional security vulnerabilities for AWS security testing purposes. 
-            <strong>DO NOT</strong> deploy this in production environments!
+            <strong>⚠️ 경고:</strong> 이 애플리케이션은 AWS 보안 테스트 목적으로 의도적인 보안 취약점을 포함하고 있습니다. 
+            제품 환경에서는 <strong>절대</strong> 배포하지 마세요!
         </div>
 
         <div class="api-section">
-            <h2>User Management APIs</h2>
+            <h2>사용자 관리 API</h2>
             <div class="api-endpoint">
                 <span class="method">POST</span>/api/v1/users/login
-                <span class="vulnerable">[SQL Injection Vulnerable]</span>
+                <span class="vulnerable">[SQL 인젝션 취약점]</span>
             </div>
             <div class="api-endpoint">
                 <span class="method">POST</span>/api/v1/users/register
-                <span class="vulnerable">[SQL Injection Vulnerable]</span>
+                <span class="vulnerable">[SQL 인젝션 취약점]</span>
             </div>
             <div class="api-endpoint">
                 <span class="method">GET</span>/api/v1/users/profile/{user_id}
-                <span class="vulnerable">[SQL Injection Vulnerable]</span>
+                <span class="vulnerable">[SQL 인젝션 취약점]</span>
             </div>
             <div class="api-endpoint">
                 <span class="method">GET</span>/api/v1/users/search?q=query
-                <span class="vulnerable">[SQL Injection Vulnerable]</span>
+                <span class="vulnerable">[SQL 인젝션 취약점]</span>
             </div>
         </div>
 
         <div class="api-section">
-            <h2>File Management APIs</h2>
+            <h2>파일 관리 API</h2>
             <div class="api-endpoint">
                 <span class="method">POST</span>/api/v1/files/upload
-                <span class="vulnerable">[Generates S3 CloudTrail Events]</span>
+                <span class="vulnerable">[S3 CloudTrail 이벤트 생성]</span>
             </div>
             <div class="api-endpoint">
                 <span class="method">GET</span>/api/v1/files/download?filename=
-                <span class="vulnerable">[Directory Traversal Risk]</span>
+                <span class="vulnerable">[디렉토리 탐색 위험]</span>
             </div>
             <div class="api-endpoint">
                 <span class="method">POST</span>/api/v1/files/bulk-upload?count=
-                <span class="vulnerable">[Mass S3 Operations]</span>
+                <span class="vulnerable">[S3 대량 작업]</span>
             </div>
         </div>
 
         <div class="api-section">
-            <h2>Admin APIs (Privilege Escalation)</h2>
+            <h2>관리자 API (권한 상승)</h2>
             <div class="api-endpoint">
                 <span class="method">POST</span>/api/v1/admin/create-role
-                <span class="vulnerable">[Creates IAM Roles - CloudTrail Events]</span>
+                <span class="vulnerable">[IAM 역할 생성 - CloudTrail 이벤트]</span>
             </div>
             <div class="api-endpoint">
                 <span class="method">POST</span>/api/v1/admin/attach-policy
-                <span class="vulnerable">[Attaches IAM Policies - CloudTrail Events]</span>
+                <span class="vulnerable">[IAM 정책 연결 - CloudTrail 이벤트]</span>
             </div>
             <div class="api-endpoint">
                 <span class="method">POST</span>/api/v1/admin/create-instance
-                <span class="vulnerable">[Creates EC2 Instances - CloudTrail Events]</span>
+                <span class="vulnerable">[EC2 인스턴스 생성 - CloudTrail 이벤트]</span>
             </div>
         </div>
 
         <div class="api-section">
-            <h2>RDS Attack APIs (Database Security Testing)</h2>
+            <h2>RDS 공격 API (데이터베이스 보안 테스트)</h2>
             <div class="api-endpoint">
                 <span class="method">POST</span>/api/v1/rds/brute-force-attack
-                <span class="vulnerable">[RDS Brute Force - CloudWatch Alarms]</span>
+                <span class="vulnerable">[RDS 무차별 대입 - CloudWatch 알람]</span>
             </div>
             <div class="api-endpoint">
                 <span class="method">POST</span>/api/v1/rds/sql-injection-mass-query
-                <span class="vulnerable">[Mass SQL Injection - RDS Logs]</span>
+                <span class="vulnerable">[대량 SQL 인젝션 - RDS 로그]</span>
             </div>
             <div class="api-endpoint">
                 <span class="method">POST</span>/api/v1/rds/connection-exhaustion
-                <span class="vulnerable">[Connection Pool Exhaustion - CloudWatch]</span>
+                <span class="vulnerable">[연결 풀 고갈 - CloudWatch]</span>
             </div>
             <div class="api-endpoint">
                 <span class="method">GET</span>/api/v1/rds/rds-performance-impact
-                <span class="vulnerable">[Resource-Intensive Queries - Performance Insights]</span>
+                <span class="vulnerable">[리소스 집약적 쿼리 - Performance Insights]</span>
             </div>
             <div class="api-endpoint">
                 <span class="method">POST</span>/api/v1/rds/create-rds-instance
-                <span class="vulnerable">[Create Vulnerable RDS - CloudTrail Events]</span>
+                <span class="vulnerable">[취약한 RDS 생성 - CloudTrail 이벤트]</span>
             </div>
         </div>
 
         <div class="api-section">
-            <h2>Exploit APIs (For Testing)</h2>
+            <h2>익스플로잇 API (테스트용)</h2>
             <div class="api-endpoint">
                 <span class="method">GET</span>/api/v1/exploit/ssrf?url=
-                <span class="vulnerable">[Server-Side Request Forgery]</span>
+                <span class="vulnerable">[서버 측 요청 위조]</span>
             </div>
             <div class="api-endpoint">
                 <span class="method">GET</span>/api/v1/exploit/command-injection?cmd=
-                <span class="vulnerable">[Command Injection]</span>
+                <span class="vulnerable">[명령어 인젝션]</span>
             </div>
             <div class="api-endpoint">
                 <span class="method">POST</span>/api/v1/exploit/port-scan
-                <span class="vulnerable">[Network Scanning - VPC Flow Logs]</span>
+                <span class="vulnerable">[네트워크 스캔 - VPC Flow Logs]</span>
             </div>
             <div class="api-endpoint">
                 <span class="method">POST</span>/api/v1/exploit/crypto-mining-sim
-                <span class="vulnerable">[CPU Usage Spike - CloudWatch Metrics]</span>
+                <span class="vulnerable">[CPU 사용률 스파이크 - CloudWatch 메트릭]</span>
             </div>
             <div class="api-endpoint">
                 <span class="method">GET</span>/api/v1/exploit/metadata-access
-                <span class="vulnerable">[AWS Metadata Service Access]</span>
+                <span class="vulnerable">[AWS 메타데이터 서비스 접근]</span>
             </div>
         </div>
 
         <div class="api-section">
-            <h2>Documentation</h2>
-            <p>API Documentation: <a href="/docs" target="_blank">/docs</a></p>
-            <p>Interactive API: <a href="/redoc" target="_blank">/redoc</a></p>
-            <p>Health Check: <a href="/health" target="_blank">/health</a></p>
+            <h2>문서</h2>
+            <p>API 문서: <a href="/docs" target="_blank">/docs</a></p>
+            <p>인터렉티브 API: <a href="/redoc" target="_blank">/redoc</a></p>
+            <p>상태 확인: <a href="/health" target="_blank">/health</a></p>
         </div>
     </div>
 </body>
